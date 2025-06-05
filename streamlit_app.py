@@ -15,20 +15,8 @@ st.set_page_config(
 st.title("Dashboard Interativo: Municípios de SC")
 st.markdown(
     """
-    **Estrutura de colunas usada**:
-    - `Municipio` (object)  
-    - `cod_IBGE` (int64)  
-    - `IDH-M_2010` (float64)  
-    - `Populacao_2010` (int64)  
-    - `Densidade_2010` (float64)  
-    - `Populacao_2022` (int64)  
-    - `Densidade_2022` (float64)  
-    - `PIBcapita_2019` (float64)  
-    - `PIBcapita_2021` (float64)  
-    - `Crescimento_populacional_abs` (int64)  
-    - `Crescimento_populacional_pct` (float64)  
-    - `Crescimento_PIBcapita_abs` (float64)  
-    - `Crescimento_PIBcapita_pct` (float64)  
+    Este aplicativo explora as variáveis disponíveis no arquivo Excel,
+    exibindo uma visão geral em tabela e visualizações interativas.
     """
 )
 
@@ -105,7 +93,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     btn_combined = st.button("Top10 População & Densidade (2022)")
 with col2:
-    btn_hist_pib = st.button("Histograma PIB 2019 vs 2021")
+    btn_hist_pib2021 = st.button("Histograma PIB 2021")
 with col3:
     btn_scatter = st.button("Scatter IDH-M vs PIB 2021")
 
@@ -161,56 +149,45 @@ def plot_top10_combined(df):
     
     return fig
 
-def plot_hist_pib_overlay(df):
-    """Histograma sobreposto de PIB per capita 2019 e 2021"""
-    fig = go.Figure()
-    fig.add_trace(
-        go.Histogram(
-            x=df["PIBcapita_2019"],
-            name="PIB per capita 2019",
-            opacity=0.6,
-            marker_color="darkgreen",
-            nbinsx=30
-        )
-    )
-    fig.add_trace(
-        go.Histogram(
-            x=df["PIBcapita_2021"],
-            name="PIB per capita 2021",
-            opacity=0.6,
-            marker_color="goldenrod",
-            nbinsx=30
-        )
+def plot_hist_pib2021(df):
+    """Histograma de PIB per capita 2021"""
+    fig = px.histogram(
+        df,
+        x="PIBcapita_2021",
+        nbins=30,
+        title="Histograma: PIB per capita 2021",
+        labels={"PIBcapita_2021": "PIB per capita (R$) – 2021"},
+        opacity=0.8,
+        color_discrete_sequence=["darkblue"]
     )
     fig.update_layout(
-        barmode="overlay",
-        title="Histograma: PIB per capita 2019 vs 2021",
-        xaxis_title="PIB per capita (R$)",
-        yaxis_title="Contagem",
-        margin=dict(l=50, r=20, t=50, b=40)
+        margin=dict(l=50, r=20, t=50, b=40),
+        yaxis_title="Contagem"
     )
     return fig
 
 def plot_scatter_idh_vs_pib21(df):
-    """Scatter: eixo Y = IDH-M_2010, eixo X = PIBcapita_2021, bolhas por Populacao_2022"""
+    """Scatter: eixo Y = IDH-M_2010, eixo X = PIBcapita_2021, cor = Crescimento_populacional_pct, bolhas por Populacao_2022"""
     fig = px.scatter(
         df,
         x="PIBcapita_2021",
         y="IDH-M_2010",
         size="Populacao_2022",
-        color="IDH-M_2010",
+        color="Crescimento_populacional_pct",
         color_continuous_scale="Viridis",
         hover_name="Municipio",
-        title="Scatter: IDH-M (2010) vs PIB per capita (2021) (bolhas = População 2022)",
+        title="Scatter: IDH-M (2010) vs PIB per capita (2021)",
         labels={
             "PIBcapita_2021": "PIB per capita (R$) – 2021",
-            "IDH-M_2010": "IDH-Municipal (2010)"
+            "IDH-M_2010": "IDH-Municipal (2010)",
+            "Crescimento_populacional_pct": "Crescimento Pop (%)"
         },
         size_max=40,
         opacity=0.7
     )
     fig.update_layout(
-        margin=dict(l=50, r=20, t=50, b=40)
+        margin=dict(l=50, r=20, t=50, b=40),
+        coloraxis_colorbar=dict(title="Crescimento Pop (%)")
     )
     return fig
 
@@ -222,9 +199,9 @@ if btn_combined:
     fig_combined = plot_top10_combined(df)
     st.plotly_chart(fig_combined, use_container_width=True)
 
-elif btn_hist_pib:
-    st.markdown("### Histograma Sobreposto de PIB (2019 vs 2021)")
-    fig_hist = plot_hist_pib_overlay(df)
+elif btn_hist_pib2021:
+    st.markdown("### Histograma: PIB per capita 2021")
+    fig_hist = plot_hist_pib2021(df)
     st.plotly_chart(fig_hist, use_container_width=True)
 
 elif btn_scatter:
@@ -244,6 +221,6 @@ st.write(
     **Observações finais:**  
     - A tabela acima exibe os dados brutos conforme fornecidos.  
     - Use os botões para alternar entre as visualizações.  
-    - Caso tenha novas colunas em versões futuras do Excel, basta adaptar ou adicionar novas funções de plot.
+    - Caso tenha novas colunas no Excel, adapte ou adicione novas funções de plot conforme necessário.
     """
 )
