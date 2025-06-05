@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # ==============================================
-# 1) Configuração da página e header
+# 1) Configuração da página e título
 # ==============================================
 st.set_page_config(
     page_title="Dashboard SC (Multianual)",
@@ -13,21 +15,20 @@ st.set_page_config(
 st.title("Dashboard Interativo: Municípios de SC")
 st.markdown(
     """
-    Este aplicativo explora as seguintes variáveis disponíveis no arquivo:
-    
-    - **Municipio** (object)  
-    - **cod_IBGE** (int64)  
-    - **IDH-M_2010** (float64)  
-    - **Populacao_2010** (int64)  
-    - **Densidade_2010** (float64)  
-    - **Populacao_2022** (int64)  
-    - **Densidade_2022** (float64)  
-    - **PIBcapita_2019** (float64)  
-    - **PIBcapita_2021** (float64)  
-    - **Crescimento_populacional_abs** (int64)  
-    - **Crescimento_populacional_pct** (float64)  
-    - **Crescimento_PIBcapita_abs** (float64)  
-    - **Crescimento_PIBcapita_pct** (float64)  
+    **Estrutura de colunas usada**:
+    - `Municipio` (object)  
+    - `cod_IBGE` (int64)  
+    - `IDH-M_2010` (float64)  
+    - `Populacao_2010` (int64)  
+    - `Densidade_2010` (float64)  
+    - `Populacao_2022` (int64)  
+    - `Densidade_2022` (float64)  
+    - `PIBcapita_2019` (float64)  
+    - `PIBcapita_2021` (float64)  
+    - `Crescimento_populacional_abs` (int64)  
+    - `Crescimento_populacional_pct` (float64)  
+    - `Crescimento_PIBcapita_abs` (float64)  
+    - `Crescimento_PIBcapita_pct` (float64)  
     """
 )
 
@@ -38,7 +39,7 @@ st.markdown(
 def load_data():
     df = pd.read_excel("municipios_2025_atualizado.xlsx")
     
-    # Lista exata de colunas esperadas
+    # Verifica existência das colunas exatas
     colunas_esperadas = [
         "Municipio",
         "cod_IBGE",
@@ -61,7 +62,7 @@ def load_data():
             "Verifique os cabeçalhos no Excel."
         )
     
-    # Conversão para tipos numéricos (se já não estiver em tipo adequado)
+    # Conversão para tipos numéricos
     df["Populacao_2010"] = pd.to_numeric(df["Populacao_2010"], errors="coerce")
     df["Densidade_2010"] = pd.to_numeric(df["Densidade_2010"], errors="coerce")
     df["IDH-M_2010"]    = pd.to_numeric(df["IDH-M_2010"],    errors="coerce")
@@ -82,227 +83,167 @@ def load_data():
         df["Crescimento_PIBcapita_pct"], errors="coerce"
     )
     
-    # Remover linhas sem valores essenciais (pelo menos Município e População 2022)
+    # Remove linhas sem valores essenciais (pelo menos Município e População 2022)
     df = df.dropna(subset=["Municipio", "Populacao_2022"])
     return df
 
 df = load_data()
 
 # ==============================================
-# 3) Sidebar: seleção de visualização
+# 3) Exibição inicial: DataFrame completo em tabela
 # ==============================================
-st.sidebar.header("Escolha a visualização")
-vis_options = [
-    "1) Top 10 Municípios por População (2022)",
-    "2) Top 10 Municípios por Densidade (2022)",
-    "3) Histograma: PIB per capita 2019",
-    "4) Histograma: PIB per capita 2021",
-    "5) Scatter: PIB2021 vs Densidade2022 (bolhas por Pop2022)",
-    "6) Scatter: Crescimento Pop (%) vs Crescimento PIB (%)",
-    "7) Boxplot: IDH-M (2010)",
-    "8) Treemap: População 2022 por Faixas de IDH-M 2010"
-]
-choice = st.sidebar.selectbox("Opção:", vis_options)
-st.sidebar.markdown("---")
-st.sidebar.write("Fonte: IBGE e Cálculos Internos")
+st.markdown("## 1) Visão Geral dos Dados")
+st.dataframe(df, use_container_width=True)
 
 # ==============================================
-# 4) Funções de plotagem (Plotly Express)
+# 4) Botões para seleção de visualização
 # ==============================================
-def plot_top10_pop2022(df):
-    top10 = df.nlargest(10, "Populacao_2022")
-    fig = px.bar(
-        top10.sort_values("Populacao_2022"),
-        x="Populacao_2022",
-        y="Municipio",
-        orientation="h",
-        title="Top 10 Municípios por População (2022)",
-        labels={"Populacao_2022": "População (2022)", "Municipio": "Município"},
-        hover_data={
-            "cod_IBGE": True,
-            "Populacao_2010": True,
-            "Densidade_2022": True
-        }
-    )
-    fig.update_layout(margin=dict(l=100, r=20, t=50, b=20))
-    return fig
+st.markdown("---")
+st.markdown("## 2) Escolha a Visualização")
+col1, col2, col3 = st.columns(3)
 
-def plot_top10_dens2022(df):
-    top10 = df.nlargest(10, "Densidade_2022")
-    fig = px.bar(
-        top10.sort_values("Densidade_2022"),
-        x="Densidade_2022",
-        y="Municipio",
-        orientation="h",
-        title="Top 10 Municípios por Densidade (2022)",
-        labels={"Densidade_2022": "Densidade (hab/km²) – 2022", "Municipio": "Município"},
-        hover_data={
-            "cod_IBGE": True,
-            "Populacao_2022": True,
-            "IDH-M_2010": True
-        },
-        color="Densidade_2022",
-        color_continuous_scale="Reds"
-    )
-    fig.update_layout(
-        margin=dict(l=100, r=20, t=50, b=20),
-        coloraxis_colorbar=dict(title="Densidade")
-    )
-    return fig
+with col1:
+    btn_combined = st.button("Top10 População & Densidade (2022)")
+with col2:
+    btn_hist_pib = st.button("Histograma PIB 2019 vs 2021")
+with col3:
+    btn_scatter = st.button("Scatter IDH-M vs PIB 2021")
 
-def plot_hist_pib2019(df):
-    fig = px.histogram(
-        df,
-        x="PIBcapita_2019",
-        nbins=30,
-        title="Distribuição de PIB per capita 2019",
-        labels={"PIBcapita_2019": "PIB per capita (R$) – 2019"},
-        marginal="box",
-        opacity=0.8
-    )
-    fig.update_layout(margin=dict(l=40, r=20, t=50, b=40))
-    return fig
-
-def plot_hist_pib2021(df):
-    fig = px.histogram(
-        df,
-        x="PIBcapita_2021",
-        nbins=30,
-        title="Distribuição de PIB per capita 2021",
-        labels={"PIBcapita_2021": "PIB per capita (R$) – 2021"},
-        marginal="box",
-        opacity=0.8
-    )
-    fig.update_layout(margin=dict(l=40, r=20, t=50, b=40))
-    return fig
-
-def plot_scatter_pib21_dens22(df):
-    fig = px.scatter(
-        df,
-        x="PIBcapita_2021",
-        y="Densidade_2022",
-        size="Populacao_2022",
-        color="Densidade_2022",
-        color_continuous_scale="Viridis",
-        hover_name="Municipio",
-        title="PIB per capita (2021) vs Densidade (2022)",
-        labels={
-            "PIBcapita_2021": "PIB per capita (R$) – 2021",
-            "Densidade_2022": "Densidade (hab/km²) – 2022"
-        },
-        size_max=40,
-        opacity=0.7
-    )
-    fig.update_layout(margin=dict(l=40, r=20, t=50, b=40))
-    return fig
-
-def plot_scatter_crescimentos(df):
-    fig = px.scatter(
-        df,
-        x="Crescimento_populacional_pct",
-        y="Crescimento_PIBcapita_pct",
-        size="Populacao_2022",
-        color="Crescimento_PIBcapita_pct",
-        color_continuous_scale="Plasma",
-        hover_name="Municipio",
-        title="Crescimento Populacional (%) vs Crescimento PIB per capita (%)",
-        labels={
-            "Crescimento_populacional_pct": "Crescimento Pop (%)",
-            "Crescimento_PIBcapita_pct": "Crescimento PIBcapita (%)"
-        },
-        size_max=40,
-        opacity=0.7
-    )
-    fig.update_layout(margin=dict(l=40, r=20, t=50, b=40))
-    return fig
-
-def plot_boxplot_idhm2010(df):
-    fig = px.box(
-        df,
-        y="IDH-M_2010",
-        title="Boxplot: Distribuição de IDH-M (2010)",
-        labels={"IDH-M_2010": "IDH-Municipal (2010)"},
-        points="all",
-        color_discrete_sequence=["teal"]
-    )
-    fig.update_layout(margin=dict(l=40, r=20, t=50, b=40))
-    return fig
-
-def plot_treemap_pop2022_faixaidhm(df):
-    # Criar faixas de IDH-M_2010: por exemplo, [<0.6, 0.6–0.7, 0.7–0.8, 0.8–0.9, ≥0.9]
-    bins = [0.0, 0.6, 0.7, 0.8, 0.9, 1.0]
-    labels = ["<0.6", "0.6–0.7", "0.7–0.8", "0.8–0.9", "≥0.9"]
-    df["Faixa_IDH_2010"] = pd.cut(
-        df["IDH-M_2010"], bins=bins, labels=labels, include_lowest=True
+# ==============================================
+# 5) Funções de plotagem
+# ==============================================
+def plot_top10_combined(df):
+    """Combina os Top 10 de População 2022 e Densidade 2022 em mínimos múltiplos"""
+    top10_pop = df.nlargest(10, "Populacao_2022")
+    top10_den = df.nlargest(10, "Densidade_2022")
+    
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("Top 10 População (2022)", "Top 10 Densidade (2022)"),
+        shared_yaxes=False, horizontal_spacing=0.15
     )
     
-    fig = px.treemap(
-        df,
-        path=["Faixa_IDH_2010", "Municipio"],
-        values="Populacao_2022",
-        color="Faixa_IDH_2010",
-        color_discrete_map={
-            "<0.6": "#fde0dd",
-            "0.6–0.7": "#fa9fb5",
-            "0.7–0.8": "#c51b8a",
-            "0.8–0.9": "#7a0177",
-            "≥0.9": "#49006a"
-        },
-        title="Treemap: População 2022 por Faixa de IDH-M 2010",
-        hover_data={"Densidade_2022": True, "PIBcapita_2021": True}
+    # Gráfico de População
+    fig.add_trace(
+        go.Bar(
+            x=top10_pop["Populacao_2022"],
+            y=top10_pop["Municipio"],
+            orientation="h",
+            name="População 2022",
+            marker_color="steelblue",
+            hovertemplate="<b>%{y}</b><br>População: %{x}<extra></extra>"
+        ),
+        row=1, col=1
     )
-    fig.update_layout(margin=dict(l=20, r=20, t=50, b=20))
+    
+    # Gráfico de Densidade
+    fig.add_trace(
+        go.Bar(
+            x=top10_den["Densidade_2022"],
+            y=top10_den["Municipio"],
+            orientation="h",
+            name="Densidade 2022",
+            marker_color="crimson",
+            hovertemplate="<b>%{y}</b><br>Densidade: %{x}<extra></extra>"
+        ),
+        row=1, col=2
+    )
+    
+    # Ajustes de layout
+    fig.update_layout(
+        height=600,
+        margin=dict(l=80, r=20, t=60, b=40),
+        showlegend=False
+    )
+    # Inverte eixos Y para que o maior fique no topo
+    fig.update_yaxes(autorange="reversed", row=1, col=1)
+    fig.update_yaxes(autorange="reversed", row=1, col=2)
+    
+    return fig
+
+def plot_hist_pib_overlay(df):
+    """Histograma sobreposto de PIB per capita 2019 e 2021"""
+    fig = go.Figure()
+    fig.add_trace(
+        go.Histogram(
+            x=df["PIBcapita_2019"],
+            name="PIB per capita 2019",
+            opacity=0.6,
+            marker_color="darkgreen",
+            nbinsx=30
+        )
+    )
+    fig.add_trace(
+        go.Histogram(
+            x=df["PIBcapita_2021"],
+            name="PIB per capita 2021",
+            opacity=0.6,
+            marker_color="goldenrod",
+            nbinsx=30
+        )
+    )
+    fig.update_layout(
+        barmode="overlay",
+        title="Histograma: PIB per capita 2019 vs 2021",
+        xaxis_title="PIB per capita (R$)",
+        yaxis_title="Contagem",
+        margin=dict(l=50, r=20, t=50, b=40)
+    )
+    return fig
+
+def plot_scatter_idh_vs_pib21(df):
+    """Scatter: eixo Y = IDH-M_2010, eixo X = PIBcapita_2021, bolhas por Populacao_2022"""
+    fig = px.scatter(
+        df,
+        x="PIBcapita_2021",
+        y="IDH-M_2010",
+        size="Populacao_2022",
+        color="IDH-M_2010",
+        color_continuous_scale="Viridis",
+        hover_name="Municipio",
+        title="Scatter: IDH-M (2010) vs PIB per capita (2021) (bolhas = População 2022)",
+        labels={
+            "PIBcapita_2021": "PIB per capita (R$) – 2021",
+            "IDH-M_2010": "IDH-Municipal (2010)"
+        },
+        size_max=40,
+        opacity=0.7
+    )
+    fig.update_layout(
+        margin=dict(l=50, r=20, t=50, b=40)
+    )
     return fig
 
 # ==============================================
-# 5) Renderização condicional conforme escolha
+# 6) Renderização condicional conforme botão
 # ==============================================
-if choice == "1) Top 10 Municípios por População (2022)":
-    st.markdown("### Top 10 Municípios por População (2022)")
-    st.plotly_chart(plot_top10_pop2022(df), use_container_width=True)
+if btn_combined:
+    st.markdown("### Top 10 Municípios por População e Densidade (2022)")
+    fig_combined = plot_top10_combined(df)
+    st.plotly_chart(fig_combined, use_container_width=True)
 
-elif choice == "2) Top 10 Municípios por Densidade (2022)":
-    st.markdown("### Top 10 Municípios por Densidade (2022)")
-    st.plotly_chart(plot_top10_dens2022(df), use_container_width=True)
+elif btn_hist_pib:
+    st.markdown("### Histograma Sobreposto de PIB (2019 vs 2021)")
+    fig_hist = plot_hist_pib_overlay(df)
+    st.plotly_chart(fig_hist, use_container_width=True)
 
-elif choice == "3) Histograma: PIB per capita 2019":
-    st.markdown("### Histograma: PIB per capita 2019")
-    st.plotly_chart(plot_hist_pib2019(df), use_container_width=True)
+elif btn_scatter:
+    st.markdown("### Scatter: IDH-M versus PIB per capita 2021")
+    fig_scat = plot_scatter_idh_vs_pib21(df)
+    st.plotly_chart(fig_scat, use_container_width=True)
 
-elif choice == "4) Histograma: PIB per capita 2021":
-    st.markdown("### Histograma: PIB per capita 2021")
-    st.plotly_chart(plot_hist_pib2021(df), use_container_width=True)
-
-elif choice == "5) Scatter: PIB2021 vs Densidade2022 (bolhas por Pop2022)":
-    st.markdown("### Scatter: PIB per capita 2021 vs Densidade 2022")
-    st.plotly_chart(plot_scatter_pib21_dens22(df), use_container_width=True)
-
-elif choice == "6) Scatter: Crescimento Pop (%) vs Crescimento PIB (%)":
-    st.markdown("### Scatter: Crescimento Pop (%) vs Crescimento PIB per capita (%)")
-    st.plotly_chart(plot_scatter_crescimentos(df), use_container_width=True)
-
-elif choice == "7) Boxplot: IDH-M (2010)":
-    st.markdown("### Boxplot: Distribuição de IDH-M (2010)")
-    st.plotly_chart(plot_boxplot_idhm2010(df), use_container_width=True)
-
-elif choice == "8) Treemap: População 2022 por Faixas de IDH-M 2010":
-    st.markdown("### Treemap: População 2022 por Faixa de IDH-M (2010)")
-    st.plotly_chart(plot_treemap_pop2022_faixaidhm(df), use_container_width=True)
+else:
+    st.info("Selecione uma visualização acima clicando em um dos botões.")
 
 # ==============================================
-# 6) Rodapé explicativo
+# 7) Rodapé
 # ==============================================
 st.markdown("---")
 st.write(
     """
-    **Notas Finais:**  
-    - Todas as visualizações acima usam as colunas EXATAMENTE correspondentes à estrutura de dados enviada.  
-    - Se você tiver novas versões do Excel (por exemplo, População_2023, PIBcapita_2022, etc.), basta adicionar as colunas 
-      e criar funções de plotagem adicionais, seguindo o padrão usado aqui.  
-    - Para rodar localmente:  
-      ```bash
-      pip install -r requirements.txt
-      streamlit run streamlit_app.py
-      ```  
+    **Observações finais:**  
+    - A tabela acima exibe os dados brutos conforme fornecidos.  
+    - Use os botões para alternar entre as visualizações.  
+    - Caso tenha novas colunas em versões futuras do Excel, basta adaptar ou adicionar novas funções de plot.
     """
 )
