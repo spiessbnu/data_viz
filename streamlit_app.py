@@ -215,4 +215,4 @@ with tab4:
 # 8) Rodapé
 # ==============================================
 st.markdown("---")
-st.write("Dashboard desenvolvido como um exemplo de refatoração de app Streamlit com foco em design e interatividade.")
+st.write("Parabéns se você está lendo essa mensagem! Você chegou ao rodapé da página! :D")
