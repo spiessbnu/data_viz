@@ -38,7 +38,7 @@ def load_data():
     ]
     colunas_faltando = [c for c in colunas_esperadas if c not in df.columns]
     if colunas_faltando:
-        st.error(f"Erro de Validação: As seguintes colunas obrigatórias não foram encontradas no arquivo Excel: {colunas_faltando}. Por favor, verifique os cabeçalhos.")
+        st.error(f"Erro de Validação: As seguintes colunas obrigatórias não foram encontradas: {colunas_faltando}. Por favor, verifique os cabeçalhos.")
         st.stop()
 
     # Conversão segura para tipos numéricos
@@ -107,7 +107,7 @@ with col4:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==============================================
-# 6) Funções de Plotagem (Títulos Atualizados)
+# 6) Funções de Plotagem (Simplificadas e com Títulos Atualizados)
 # ==============================================
 def plot_top10_combined(df):
     """Gera gráficos de barras para Top 10 População e Densidade."""
@@ -158,7 +158,7 @@ def plot_hist_pib2021(df):
     return fig
 
 def plot_scatter_idh_vs_pib21(df):
-    """Gera o gráfico de dispersão IDH vs. PIB."""
+    """Gera o gráfico de dispersão IDH vs. PIB. SEM LÓGICA DE FILTRO."""
     fig = px.scatter(
         df, x="PIBcapita_2021", y="IDH-M_2010",
         size="Populacao_2022", color="Crescimento_populacional_pct",
@@ -202,6 +202,7 @@ with tab2:
 
 with tab3:
     st.header("Análise Cruzada: IDH, Renda e População no Vale do Itajaí")
+    # A chamada da função agora é simples, sem passar seleções
     fig_scatter = plot_scatter_idh_vs_pib21(df)
     st.plotly_chart(fig_scatter, use_container_width=True)
 
